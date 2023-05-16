@@ -6,10 +6,11 @@
 #define pinOfremote 2
 
 
-#define upkey    0xB946FF00
-#define downkey  0xEA15FF00
-#define leftkey  0xBC43FF00
+#define upkey 0xB946FF00
+#define downkey 0xEA15FF00
+#define leftkey 0xBC43FF00
 #define rightkey 0xBC43FF00
+#define okkey 0xBF40FF00
 
 
 
@@ -116,11 +117,77 @@ void loop() {
 
       lcd.print("light Auto mod");
     }
+    // Serial.println(remote.decodedIRData.decodedRawData , HEX);
 
-    
+    if (remote.decodedIRData.decodedRawData == okkey) {
+      const String seting[] = {
+        "irrigation day",
+        "date",
+        "time"
+      };
+      uint8_t irrigation_day = EEPROM.read(0);
+      remote.resume();
+      int nubmerOfseting = 0;
+      lcd.setCursor(0, 1);
+      lcd.print(seting[nubmerOfseting].c_str());
+      while (1) {
 
+        if (remote.decode()) {
+
+          if (remote.decodedIRData.decodedRawData == upkey) {
+
+            if (nubmerOfseting > 0) {
+              nubmerOfseting--;
+            }
+          } else if (remote.decodedIRData.decodedRawData == downkey) {
+            if (nubmerOfseting < 2) {
+              nubmerOfseting++;
+            }
+          } else if (remote.decodedIRData.decodedRawData == okkey) {
+            remote.resume();
+
+            while (1) {
+              if (remote.decode()) {
+
+                if (nubmerOfseting == 0) {
+
+
+                  if (remote.decodedIRData.decodedRawData == upkey && irrigation_day < 29) {
+                    irrigation_day++;
+
+                  } else if (remote.decodedIRData.decodedRawData == downkey && irrigation_day > 1) {
+                    irrigation_day--;
+
+                  } else if (remote.decodedIRData.decodedRawData == okkey) {
+                    EEPROM.update(0, irrigation_day);
+                    lcdClean();
+                    lcd.setCursor(0, 1);
+                    lcd.print("done");
+                    delay(1000);
+                    goto start;
+                  }
+                  lcdClean();
+                  lcd.setCursor(0, 1);
+                  lcd.print(irrigation_day);
+                }else  if (nubmerOfseting == 1) {
+                  
+                }
+              }
+              remote.resume();
+            }
+          }
+          lcdClean();
+          lcd.setCursor(0, 1);
+          lcd.print(seting[nubmerOfseting].c_str());
+        }
+        
+        remote.resume();
+      }
+    }
+start:
     remote.resume();
   }
+
 
   if (analogRead(A5) <= 800 && isligth) {
     digitalWrite(3, 1);
